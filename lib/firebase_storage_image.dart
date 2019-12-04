@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart' show FirebaseStorage;
 import 'package:flutter/foundation.dart' show SynchronousFuture, DiagnosticsProperty;
 import 'package:flutter/painting.dart'
     show
+        DecoderCallback,
         ImageConfiguration,
         ImageProvider,
         ImageStreamCompleter,
@@ -51,9 +52,9 @@ class FirebaseStorageImage extends ImageProvider<FirebaseStorageImage> {
       SynchronousFuture<FirebaseStorageImage>(this);
 
   @override
-  ImageStreamCompleter load(FirebaseStorageImage key) =>
+  ImageStreamCompleter load(FirebaseStorageImage key, DecoderCallback decode) =>
       MultiFrameImageStreamCompleter(
-    codec: _fetch(key),
+    codec: _fetch(key, decode),
     scale: key.scale,
     informationCollector: () sync* {
       yield DiagnosticsProperty<FirebaseStorageImage>('Image provider', this);
@@ -77,7 +78,7 @@ class FirebaseStorageImage extends ImageProvider<FirebaseStorageImage> {
   @override
   String toString() => '$runtimeType("$location", scale: $scale)';
 
-  Future<Codec> _fetch(FirebaseStorageImage key) async {
+  Future<Codec> _fetch(FirebaseStorageImage key, DecoderCallback decode) async {
     final uri = Uri.parse(key.location);
 
     final storage = FirebaseStorage(
@@ -87,7 +88,7 @@ class FirebaseStorageImage extends ImageProvider<FirebaseStorageImage> {
 
     final bytes = await storage.getData(key.maxSizeBytes);
 
-    return await PaintingBinding.instance.instantiateImageCodec(bytes);
+    return await decode(bytes);
   }
 
   static String _getBucketUrl(Uri uri) => '${uri.scheme}://${uri.authority}';
